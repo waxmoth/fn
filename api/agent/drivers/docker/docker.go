@@ -53,14 +53,56 @@ func (r *runResult) Error() error   { return r.err }
 func (r *runResult) Status() string { return r.status }
 
 type DockerDriver struct {
-	conf     drivers.Config
-	docker   dockerClient // retries on *docker.Client, restricts ad hoc *docker.Client usage / retries
-	hostname string
-	auths    map[string]driverAuthConfig
-	pool     DockerPool
+	conf       drivers.Config
+	docker     dockerClient // retries on *docker.Client, restricts ad hoc *docker.Client usage / retries
+	hostname   string
+	auths      map[string]driverAuthConfig
+	pool       DockerPool
+	imageCache *Cache
 	// protects networks map
 	networksLock sync.Mutex
 	networks     map[string]uint64
+}
+
+func NewImageCleaner(dockerDriver *DockerDriver, context context.Context) error {
+	opts := docker.RemoveImageOptions{}
+	opts.Force = true
+	opts.NoPrune = false
+	opts.Context = context
+	ticker := time.NewTicker(dockerDriver.conf.ImageCacheCleanInterval)
+	for {
+		select {
+		case <-context.Done():
+			{
+				return nil
+			}
+		case <-ticker.C:
+			{
+				if dockerDriver.imageCache.OverFilled() {
+					toEvict := dockerDriver.imageCache.Evictable()
+					for _, i := range toEvict {
+						err := dockerDriver.docker.RemoveImage(i.image.ID, opts)
+						if err != nil {
+							logrus.WithError(err).Errorf("Could not remove image: %v because: %v", i, err)
+						} else {
+							dockerDriver.imageCache.Remove(i.image)
+						}
+					}
+				}
+			}
+
+		}
+
+	}
+}
+
+func Contains(coll []docker.APIImages, item docker.APIImages) bool {
+	for _, image := range coll {
+		if image.ID == item.ID {
+			return true
+		}
+	}
+	return false
 }
 
 // implements drivers.Driver
@@ -101,11 +143,34 @@ func NewDocker(conf drivers.Config) *DockerDriver {
 		}
 	}
 
+	imagesBeforeLoad, err := driver.docker.ListImages(context.Background())
+
 	if conf.DockerLoadFile != "" {
 		err = loadDockerImages(driver, conf.DockerLoadFile)
 		if err != nil {
 			logrus.WithError(err).Fatalf("cannot load docker images in %s", conf.DockerLoadFile)
 		}
+	}
+
+	if conf.MaxImageCacheSize != 0 {
+		driver.imageCache = NewCache(int64(conf.MaxImageCacheSize))
+
+		go func(context context.Context) {
+			images, err := driver.docker.ListImages(context)
+			if err != nil {
+				logrus.WithError(err).Fatalf("cannot list docker images %s", err)
+			}
+			for _, i := range images {
+				if Contains(imagesBeforeLoad, i) {
+					driver.imageCache.Add(i)
+				} else {
+					driver.imageCache.Add(i)
+					driver.imageCache.Lock(i.ID, "baseimage")
+				}
+			}
+		}(context.Background())
+
+		go NewImageCleaner(driver, context.Background())
 	}
 
 	return driver
@@ -231,6 +296,10 @@ func (drv *DockerDriver) CreateCookie(ctx context.Context, task drivers.Containe
 		opts: opts,
 		task: task,
 		drv:  drv,
+	}
+
+	if drv.imageCache != nil {
+		drv.imageCache.Lock(task.Image(), cookie)
 	}
 
 	cookie.configureLogger(log)
@@ -372,6 +441,10 @@ func (drv *DockerDriver) run(ctx context.Context, container string, task drivers
 
 	mwOut, mwErr := task.Logger()
 	successChan := make(chan struct{})
+
+	if drv.imageCache != nil {
+		drv.imageCache.Mark(container)
+	}
 
 	waiter, err := drv.docker.AttachToContainerNonBlocking(ctx, docker.AttachToContainerOptions{
 		Container:    container,

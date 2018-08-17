@@ -41,6 +41,8 @@ type dockerClient interface {
 	UnpauseContainer(id string, ctx context.Context) error
 	PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
 	InspectImage(ctx context.Context, name string) (*docker.Image, error)
+	ListImages(ctx context.Context) ([]docker.APIImages, error)
+	RemoveImage(id string, opts docker.RemoveImageOptions) error
 	InspectContainerWithContext(container string, ctx context.Context) (*docker.Container, error)
 	Stats(opts docker.StatsOptions) error
 	Info(ctx context.Context) (*docker.DockerInfo, error)
@@ -243,6 +245,12 @@ func (d *dockerWrap) LoadImages(ctx context.Context, filePath string) error {
 	})
 }
 
+func (d *dockerWrap) ListImages(ctx context.Context) ([]docker.APIImages, error) {
+	ctx, span := trace.StartSpan(ctx, "list_docker_images")
+	defer span.End()
+	return d.docker.ListImages(docker.ListImagesOptions{All: false})
+}
+
 func (d *dockerWrap) Info(ctx context.Context) (info *docker.DockerInfo, err error) {
 	// NOTE: we're not very responsible and prometheus wasn't loved as a child, this
 	// threads through directly down to the docker call, skipping retires, so that we
@@ -321,6 +329,19 @@ func (d *dockerWrap) PullImage(opts docker.PullImageOptions, auth docker.AuthCon
 		return err
 	})
 	return err
+}
+
+func (d *dockerWrap) RemoveImage(image string, opts docker.RemoveImageOptions) (err error) {
+	ctx, span := trace.StartSpan(opts.Context, "docker_remove_image")
+	defer span.End()
+
+	logger := common.Logger(ctx).WithField("docker_cmd", "RemoveImage")
+	err = d.retry(ctx, logger, func() error {
+		err = d.RemoveImage(image, opts)
+		return err
+	})
+	return err
+
 }
 
 func (d *dockerWrap) RemoveContainer(opts docker.RemoveContainerOptions) (err error) {
