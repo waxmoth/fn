@@ -46,6 +46,7 @@ type dockerClient interface {
 	InspectContainerWithContext(container string, ctx context.Context) (*docker.Container, error)
 	Stats(opts docker.StatsOptions) error
 	Info(ctx context.Context) (*docker.DockerInfo, error)
+	DiskUsage(docker.DiskUsageOptions) (*docker.DiskUsage, error)
 	LoadImages(ctx context.Context, filePath string) error
 }
 
@@ -433,4 +434,8 @@ func (d *dockerWrap) Stats(opts docker.StatsOptions) (err error) {
 	//return err
 	//})
 	//return err
+}
+
+func (d *dockerWrap) DiskUsage(opts docker.DiskUsageOptions) (*docker.DiskUsage, error) {
+	return d.docker.DiskUsage(opts)
 }

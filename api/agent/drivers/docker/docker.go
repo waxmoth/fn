@@ -64,8 +64,9 @@ type DockerDriver struct {
 	networks     map[string]uint64
 }
 
-func NewImageCleaner(dockerDriver *DockerDriver, context context.Context) error {
+func NewImageCleaner(dockerDriver *DockerDriver, context context.Context, maxSize int64) error {
 	opts := docker.RemoveImageOptions{}
+	duopts := docker.DiskUsageOptions{}
 	opts.Force = true
 	opts.NoPrune = false
 	opts.Context = context
@@ -78,7 +79,11 @@ func NewImageCleaner(dockerDriver *DockerDriver, context context.Context) error 
 			}
 		case <-ticker.C:
 			{
-				if dockerDriver.imageCache.OverFilled() {
+				du, err := dockerDriver.docker.DiskUsage(duopts)
+				if err != nil {
+					logrus.WithError(err).Error("attempting to check disk usage")
+				}
+				if du.LayersSize > maxSize {
 					toEvict := dockerDriver.imageCache.Evictable()
 					for _, i := range toEvict {
 						err := dockerDriver.docker.RemoveImage(i.image.ID, opts)
@@ -153,7 +158,7 @@ func NewDocker(conf drivers.Config) *DockerDriver {
 	}
 
 	if conf.MaxImageCacheSize != 0 {
-		driver.imageCache = NewCache(int64(conf.MaxImageCacheSize))
+		driver.imageCache = NewCache()
 
 		go func(context context.Context) {
 			images, err := driver.docker.ListImages(context)
@@ -170,7 +175,7 @@ func NewDocker(conf drivers.Config) *DockerDriver {
 			}
 		}(context.Background())
 
-		go NewImageCleaner(driver, context.Background())
+		go NewImageCleaner(driver, context.Background(), int64(conf.MaxImageCacheSize))
 	}
 
 	return driver

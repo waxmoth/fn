@@ -166,7 +166,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:fb02a20784a57cb6229a8097d97546fdc4a14f3506463ae8cc73d5727f326532"
+  digest = "1:9d858ab83cb1379acce1c21024ee70bedaceb9919001c25858c4fe27aebbba2a"
   name = "github.com/fsouza/go-dockerclient"
   packages = [
     ".",
@@ -175,7 +175,7 @@
     "internal/term",
   ]
   pruneopts = ""
-  revision = "1b33efcb40bef3494af8bc6a1f73600f37a3c9d1"
+  revision = "050dda146355762a475b0e0db58ce82fde85d5bc"
 
 [[projects]]
   digest = "1:9525d0e79ccf382e32edeef466b9a91f16eb0eebdca5971a03fad1bb3be9cd89"

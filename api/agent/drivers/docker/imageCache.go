@@ -61,7 +61,7 @@ func NewEntry(value d.APIImages) Entry {
 }
 
 // New returns a new cache with the provided maximum items.
-func NewCache(maxSize int64) *Cache {
+func NewCache() *Cache {
 	return &Cache{
 		cache: make(EntryByAge, 0),
 		mu:    sync.Mutex{},
