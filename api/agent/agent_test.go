@@ -292,7 +292,6 @@ func TestImageCache(t *testing.T) {
 	app := &models.App{ID: "app_id", Name: "myapp"}
 
 	path := "/"
-	image := "fnproject/fn-test-utils"
 	const timeout = 1
 	const idleTimeout = 20
 	const memory = 256
@@ -326,8 +325,6 @@ func TestImageCache(t *testing.T) {
 		AppName:     app.Name,
 		Config:      config,
 		Headers:     headers,
-		Path:        path,
-		Image:       image,
 		Type:        typ,
 		Format:      format,
 		Timeout:     timeout,

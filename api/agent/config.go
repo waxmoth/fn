@@ -120,7 +120,6 @@ func NewConfig() (*Config, error) {
 	cfg := &Config{
 		MinDockerVersion:        "17.10.0-ce",
 		MaxLogSize:              1 * 1024 * 1024,
-		MaxCallEndStacking:      8192,
 		PreForkImage:            "busybox",
 		PreForkCmd:              "tail -f /dev/null",
 		MaxImageCacheSize:       0,
@@ -133,7 +132,6 @@ func NewConfig() (*Config, error) {
 	err = setEnvMsecs(err, EnvHotPoll, &cfg.HotPoll, DefaultHotPoll)
 	err = setEnvMsecs(err, EnvHotLauncherTimeout, &cfg.HotLauncherTimeout, time.Duration(60)*time.Minute)
 	err = setEnvMsecs(err, EnvAsyncChewPoll, &cfg.AsyncChewPoll, time.Duration(60)*time.Second)
-	err = setEnvMsecs(err, EnvCallEndTimeout, &cfg.CallEndTimeout, time.Duration(10)*time.Minute)
 	err = setEnvMsecs(err, EnvImageCacheCleanInterval, &cfg.ImageCacheCleanInterval, time.Duration(5)*time.Minute)
 	err = setEnvUint(err, EnvMaxResponseSize, &cfg.MaxResponseSize)
 	err = setEnvUint(err, EnvMaxLogSize, &cfg.MaxLogSize)
@@ -141,9 +139,7 @@ func NewConfig() (*Config, error) {
 	err = setEnvUint(err, EnvMaxTotalMemory, &cfg.MaxTotalMemory)
 	err = setEnvUint(err, EnvMaxFsSize, &cfg.MaxFsSize)
 	err = setEnvUint(err, EnvPreForkPoolSize, &cfg.PreForkPoolSize)
-	err = setEnvUint(err, EnvMaxCallEndStacking, &cfg.MaxCallEndStacking)
 	err = setEnvUint(err, EnvMaxImageCacheSize, &cfg.MaxImageCacheSize)
-
 	err = setEnvStr(err, EnvPreForkImage, &cfg.PreForkImage)
 	err = setEnvStr(err, EnvPreForkCmd, &cfg.PreForkCmd)
 	err = setEnvUint(err, EnvPreForkUseOnce, &cfg.PreForkUseOnce)
