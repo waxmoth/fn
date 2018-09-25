@@ -185,7 +185,7 @@ func (c *Cache) Add(value d.APIImages) {
 	c.cache = append(c.cache, NewEntry(value))
 }
 
-// Checks for evictable images ordered by score.
+// Evictable returns all evictable images ordered by score (which is why it's wrapped in EntryByAge)
 func (c *Cache) Evictable() EntryByAge {
 	c.mu.Lock()
 	defer c.mu.Unlock()
