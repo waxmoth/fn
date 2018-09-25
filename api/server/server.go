@@ -28,7 +28,6 @@ import (
 	"github.com/fnproject/fn/api/models"
 	"github.com/fnproject/fn/api/mqs"
 	pool "github.com/fnproject/fn/api/runnerpool"
-	"github.com/fnproject/fn/api/server/spanexporter"
 	"github.com/fnproject/fn/api/version"
 	"github.com/fnproject/fn/fnext"
 	"github.com/gin-gonic/gin"
@@ -739,13 +738,8 @@ func WithPrometheus() Option {
 		}
 		s.promExporter = exporter
 		view.RegisterExporter(exporter)
-
-		spanExporter, err := spanexporter.NewExporter(spanexporter.Options{
-			Namespace: "fn",
-			Registry:  reg,
-			OnError:   func(err error) { logrus.WithError(err).Error("opencensus prometheus span exporter err") },
-		})
-		trace.RegisterExporter(spanExporter)
+		converter, _ := NewConverter(Options{Namespace: "fn", Exporter: exporter})
+		trace.RegisterExporter(converter)
 		trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
 
 		return nil
