@@ -142,7 +142,7 @@ func (c *Cache) lock(ID string, key interface{}) error {
 	return errors.New("Image not found in cache")
 }
 
-// Check to see if an image by id as any locks on it.
+// Check to see if an image by id has any locks on it.
 func (c *Cache) Locked(ID string) (bool, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
