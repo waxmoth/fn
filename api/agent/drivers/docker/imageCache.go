@@ -60,7 +60,7 @@ func NewEntry(value d.APIImages) Entry {
 		image:    value}
 }
 
-// New returns a new cache with the provided maximum items.
+// NewCache returns a new cache with the provided maximum items.
 func NewCache() *Cache {
 	return &Cache{
 		cache: make(EntryByAge, 0),
