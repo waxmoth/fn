@@ -124,7 +124,7 @@ func (c *Cache) Remove(value d.APIImages) error {
 	return errors.New("Image not found in cache")
 }
 
-// Adds a token to the list of locks on this image by id.
+// Lock Adds a token to the list of locks on this image by image id.
 func (c *Cache) Lock(ID string, key interface{}) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -158,7 +158,7 @@ func (c *Cache) locked(ID string) (bool, error) {
 	return false, errors.New("Image not found in cache")
 }
 
-// Removes a token from an image by ID's lock set.
+// Unlock Removes a token from an image by ID's lock set.
 func (c *Cache) Unlock(ID string, key interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -173,8 +173,7 @@ func (c *Cache) unlock(ID string, key interface{}) {
 	}
 }
 
-// Add adds the provided key and value to the cache, evicting
-// an old item if necessary.
+// Add puts a value into the cache or marks it as used if it is already present. Thread Safe.
 func (c *Cache) Add(value d.APIImages) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -184,18 +183,6 @@ func (c *Cache) Add(value d.APIImages) {
 		return
 	}
 	c.cache = append(c.cache, NewEntry(value))
-}
-
-// Checks the total size of the docker data dir.
-func (c *Cache) TotalSize() int64 {
-	return 0
-}
-
-// Returns true if there is to much space consumed.
-func (c *Cache) OverFilled() bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.TotalSize() > c.maxSize
 }
 
 // Checks for evictable images ordered by score.
